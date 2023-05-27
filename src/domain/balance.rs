@@ -15,20 +15,22 @@ impl Balance {
     pub fn new(history: Vec<Transaction>, currency: Currency) -> Self {
         let amount: Money = history.iter()
             .map(|transaction| transaction.signed_amount())
-            .reduce(|balance, amount| balance.add(&amount))
+            .fold(Ok(Money::zero(currency)), |balance, amount| {
+                balance.and_then(|b| b.add(&amount))
+            })
             .unwrap_or(Money::zero(currency));
         
         return Balance { amount, currency };
     }
     
     pub fn withdraw(&self, transaction: Transaction) -> Result<Balance, String> {
-        if transaction.amount.biggerThan(&self.amount) {
+        if transaction.amount.bigger_than(&self.amount) {
             return Err(String::from("The balance is not enough"));
         }
-        return Ok(Balance { amount: self.amount.subtract(&transaction.amount), currency: self.currency });
+        return Ok(Balance { amount: self.amount.subtract(&transaction.amount)?, currency: self.currency });
     }
     
     pub fn deposit(&self, transaction: Transaction) -> Result<Balance, String> {
-        return Ok(Balance { amount: self.amount.add(&transaction.amount), currency: self.currency });
+        return Ok(Balance { amount: self.amount.add(&transaction.amount)?, currency: self.currency });
     }
 }
